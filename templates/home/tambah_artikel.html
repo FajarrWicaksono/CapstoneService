@@ -1,0 +1,22 @@
+{% extends 'layouts/base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h4 class="mb-3">Tambah Artikel Baru</h4>
+  <form method="POST" action="/tambah-artikel">
+    <div class="form-group mb-3">
+      <label>Judul Artikel</label>
+      <input type="text" name="title" class="form-control" required>
+    </div>
+    <div class="form-group mb-3">
+      <label>Penulis</label>
+      <input type="text" name="author" class="form-control" required>
+    </div>
+    <div class="form-group mb-3">
+      <label>Isi Artikel</label>
+      <textarea name="content" rows="5" class="form-control" required></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Simpan</button>
+    <a href="/tables" class="btn btn-secondary">Batal</a>
+  </form>
+</div>
+{% endblock %}
