@@ -33,7 +33,9 @@ class OpenIDMixin:
         data = resp.json()
         return UserInfo(data)
 
-    def parse_id_token(self, token, nonce, claims_options=None, claims_cls=None, leeway=120):
+    def parse_id_token(
+        self, token, nonce, claims_options=None, claims_cls=None, leeway=120
+    ):
         """Return an instance of UserInfo from token's ``id_token``."""
         if "id_token" not in token:
             return None
@@ -69,7 +71,7 @@ class OpenIDMixin:
             claims_options=claims_options,
             claims_params=claims_params,
         )
-        # https://github.com/lepture/authlib/issues/259
+        # https://github.com/authlib/authlib/issues/259
         if claims.get("nonce_supported") is False:
             claims.params["nonce"] = None
 

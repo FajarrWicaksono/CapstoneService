@@ -23,7 +23,7 @@ class User:
             'is_verified': is_verified,
             'verification_token': verification_token,
             'role': role,
-            'profile_picture': profile_picture or default_picture_url,  # ✅ default foto
+            'profile_picture': profile_picture or default_picture_url,
             'created_at': datetime.datetime.utcnow(),
             'updated_at': datetime.datetime.utcnow()
         }
@@ -87,4 +87,11 @@ class User:
         self.db.users.update_one(
             {'email': email},
             {'$unset': {'otp_code': "", 'otp_expiry': ""}}
+        )
+
+    def update_password(self, email, new_password):
+        hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        self.db.users.update_one(
+            {'email': email},
+            {'$set': {'password': hashed, 'updated_at': datetime.datetime.utcnow()}}
         )

@@ -38,7 +38,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="D:\6C Web Service\CapstoneService\venv"
+VIRTUAL_ENV="C:\Users\Jars\Semester 6\WebProgramming\CapstoneService\venv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"

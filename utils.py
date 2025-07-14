@@ -2,7 +2,8 @@ from email.message import EmailMessage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import smtplib
-from flask import request, jsonify
+import bcrypt
+from flask import flash, redirect, request, jsonify, session, url_for
 import jwt
 import datetime
 from functools import wraps
@@ -10,15 +11,21 @@ from google.oauth2 import id_token
 from authlib.integrations.flask_client import OAuth
 from google.auth.transport import requests as google_requests
 import os
+from dotenv import load_dotenv
 import firebase_admin
 from firebase_admin import credentials, auth
+from werkzeug.utils import secure_filename
+
+
+load_dotenv()
 
 # === CONFIGURATION ===
-JWT_SECRET = os.getenv("JWT_SECRET", "rahasia_xarrs_aman_320")
+JWT_SECRET = os.getenv("JWT_SECRET", "Rahasia Tau")
 JWT_ALGORITHM = "HS256"
-API_KEY = os.getenv("API_KEY", "3d0d64d8-22ae-4cfb-8639-d8cb49256856")
+API_KEY = os.getenv("API_KEY", "Rahasia")
 email_address = os.getenv('EMAIL_ADDRESS')
 email_password = os.getenv('EMAIL_PASSWORD')
+verification_base_url = os.getenv("VERIFICATION_BASE_URL")
 oauth = OAuth()
 
 if not firebase_admin._apps:
@@ -28,10 +35,11 @@ if not firebase_admin._apps:
 # === JWT CREATION ===
 def create_token(user_id, secret=JWT_SECRET):
     from Models.user_model import User
-    from app import mongo  # make sure no circular import
+    from app import mongo 
     user_model = User(mongo.db)
     user = user_model.find_user_by_id(user_id)
     payload = {
+        'sub': str(user_id),
         'user_id': str(user_id),
         'email': user['email'],
         'role': user.get('role', 'user'),
@@ -39,6 +47,8 @@ def create_token(user_id, secret=JWT_SECRET):
     }
     return jwt.encode(payload, secret, algorithm=JWT_ALGORITHM)
 
+def check_password(plain_password, hashed_password):
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 def verify_token(token, secret=JWT_SECRET):
     try:
@@ -66,23 +76,34 @@ def token_required(f):
 
 def admin_required(f):
     @wraps(f)
-    def decorated(*args, **kwargs):
-        auth_header = request.headers.get('Authorization', None)
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return jsonify({'error': 'Token is missing!'}), 401
-        token = auth_header.split(" ")[1]
-        try:
-            payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        except jwt.ExpiredSignatureError:
-            return jsonify({'error': 'Token expired!'}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({'error': 'Token invalid!'}), 401
+    def decorated_function(*args, **kwargs):
+        # Cek sesi login dari browser
+        if session.get('logged_in') and session.get('user_role') == 'admin':
+            return f(*args, **kwargs)
 
-        if payload.get('role') != 'admin':
-            return jsonify({'error': 'Hanya admin yang diizinkan'}), 403
+        # Cek header Authorization dari API
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header.split(" ")[1]
+            try:
+                payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+                if payload.get('role') == 'admin':
+                    return f(*args, **kwargs)
+                else:
+                    return jsonify({'error': 'Hanya admin yang diizinkan'}), 403
+            except jwt.ExpiredSignatureError:
+                return jsonify({'error': 'Token expired!'}), 401
+            except jwt.InvalidTokenError:
+                return jsonify({'error': 'Token tidak valid!'}), 401
 
-        return f(*args, **kwargs)
-    return decorated
+        # Jika tidak login dan tidak ada token
+        if request.path.startswith('/api/'):
+            return jsonify({'error': 'Akses ditolak, login sebagai admin diperlukan.'}), 401
+        else:
+            flash('Login sebagai admin diperlukan.', 'danger')
+            return redirect(url_for('login_admin'))
+
+    return decorated_function
 
 
 def require_api_key(f):
@@ -117,7 +138,7 @@ def send_verification_email(recipient_email, token):
     msg['From'] = email_address
     msg['To'] = recipient_email
 
-    link = f"http://192.168.139.204:5012/api/auth/verify-email?token={token}"
+    link = f"{verification_base_url}/api/auth/verify-email?token={token}"
 
     msg.set_content(f'''
 Halo,

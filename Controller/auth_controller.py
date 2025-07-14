@@ -1,13 +1,18 @@
 import datetime
 import os
 import uuid
+import bcrypt
+from bson import ObjectId
 from flask import jsonify, request, url_for
+from Models import user_model
+from Models.login_log_model import LoginLog
 from Models.user_model import User
-from utils import create_token, send_verification_email, verify_token, oauth
+from utils import check_password, create_token, send_verification_email, verify_token, oauth
 
 class AuthController:
     def __init__(self, mongo, jwt_secret):
         self.user_model = User(mongo)
+        self.login_log_model = LoginLog(mongo)
         self.jwt_secret = jwt_secret
 
     def register(self, data):
@@ -67,22 +72,46 @@ class AuthController:
             'message': 'Registrasi berhasil. Silakan verifikasi email Anda melalui tautan yang dikirim.'
         }), 201
 
+    # auth_controller.py
+    def login_admin(data):
+        user = user_model.find_user_by_email(data['email'])
+        if user and check_password(data['password'], user['password']):
+            if user['role'].lower() != 'admin':
+                return jsonify({'error': 'Akses hanya untuk admin'}), 403
+            
+            return jsonify({
+                'message': 'Login admin berhasil',
+                'user': {
+                    'email': user['email'],
+                    'role': user['role']
+                }
+            }), 200
+
+        return jsonify({'error': 'Email atau password salah'}), 401
+
+
     def login(self, data):
         print("DEBUG: Memulai proses login.")
         print(f"DEBUG: Data login: {data}")
 
+        user_agent = request.headers.get('User-Agent')
+        ip_address = request.remote_addr
+
         if not data or not data.get('email') or not data.get('password'):
+            self.login_log_model.log_login(None, "failed", user_agent, ip_address)
             return jsonify({'error': 'Email dan password diperlukan'}), 400
 
         user = self.user_model.find_user_by_email(data['email'])
         if not user or not self.user_model.verify_password(user, data['password']):
+            self.login_log_model.log_login(user['_id'] if user else None, "failed", user_agent, ip_address)
             return jsonify({'error': 'Email atau password salah'}), 401
 
         if not user.get('is_verified', False):
+            self.login_log_model.log_login(user['_id'], "failed", user_agent, ip_address)
             return jsonify({'error': 'Email belum diverifikasi'}), 403
 
         token = create_token(user['_id'], self.jwt_secret)
-        print(f"DEBUG: Token login dibuat: {token}")
+        self.login_log_model.log_login(user['_id'], "success", user_agent, ip_address)
 
         return jsonify({
             'message': 'Login berhasil',
@@ -93,7 +122,7 @@ class AuthController:
             'user_phone': user.get('phone', ''),
             'user_age': user.get('age', ''),
             'user_gender': user.get('gender', ''),
-            'role': user.get('role', 'user'), 
+            'role': user.get('role', 'user'),
             'profile_picture': user.get('profile_picture', '')
         })
 
@@ -245,3 +274,62 @@ class AuthController:
         )
 
         return jsonify({'message': 'Profil berhasil diperbarui'}), 200
+    
+    def delete_user(self):
+        try:
+            token = request.headers.get('Authorization')
+            if not token or not token.startswith("Bearer "):
+                return jsonify({"error": "Token missing or invalid"}), 401
+            token = token.split(" ")[1]
+
+            payload = verify_token(token, self.jwt_secret)
+            if not payload:
+                return jsonify({"error": "Invalid or expired token"}), 401
+
+            user_id = payload['user_id']
+            try:
+                obj_id = ObjectId(user_id)
+            except Exception:
+                return jsonify({"error": "Invalid user ID"}), 400
+
+            user = self.user_model.find_user_by_id(user_id)
+            if not user:
+                return jsonify({"error": "User not found"}), 404
+
+            result = self.user_model.db.users.delete_one({"_id": obj_id})
+            if result.deleted_count == 0:
+                return jsonify({"error": "User not found"}), 404
+
+            return jsonify({"message": "User deleted successfully"}), 200
+
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
+    def change_password_from_token(self):
+        token = request.headers.get('Authorization').split(" ")[1]
+        payload = verify_token(token, self.jwt_secret)
+
+        if not payload:
+            return jsonify({'success': False, 'message': 'Token tidak valid'}), 401
+
+        user_id = payload['user_id']
+        user = self.user_model.find_user_by_id(user_id)
+        if not user:
+            return jsonify({'success': False, 'message': 'User tidak ditemukan'}), 404
+
+        data = request.get_json()
+        old_password = data.get('old_password')
+        new_password = data.get('new_password')
+
+        if not old_password or not new_password:
+            return jsonify({'success': False, 'message': 'Old password dan new password wajib diisi'}), 400
+
+        # Verifikasi old password
+        if not self.user_model.verify_password(user, old_password):
+            return jsonify({'success': False, 'message': 'Password lama salah'}), 400
+
+        # Update new password
+        self.user_model.update_password(user['email'], new_password)
+
+        return jsonify({'success': True, 'message': 'Password berhasil diubah'}), 200
+

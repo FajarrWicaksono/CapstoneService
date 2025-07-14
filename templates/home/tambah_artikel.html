@@ -1,22 +1,93 @@
 {% extends 'layouts/base.html' %}
+
+{% block title %}Tambah Artikel{% endblock %}
+
+{% block stylesheets %}
+<!-- Material Icons -->
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+  .form-section {
+    background-color: #f8f9fa;
+    border-radius: 15px;
+    padding: 35px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  }
+
+  .form-label i {
+    color: #5e72e4;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+
+  .form-control {
+    border-radius: 12px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s;
+  }
+
+  .form-control:focus {
+    border-color: #5e72e4;
+    box-shadow: 0 0 0 0.15rem rgba(94, 114, 228, 0.25);
+  }
+
+  textarea.form-control {
+    min-height: 160px;
+    background-image: linear-gradient(transparent 95%, rgba(0, 0, 0, 0.05) 96%);
+    background-size: 100% 1.5em;
+    line-height: 1.5em;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 0.95rem;
+  }
+
+  .btn-primary {
+    background: linear-gradient(87deg, #5e72e4 0, #825ee4 100%);
+    border: none;
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(87deg, #324cdd 0, #6b46c1 100%);
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-  <h4 class="mb-3">Tambah Artikel Baru</h4>
-  <form method="POST" action="/tambah-artikel">
-    <div class="form-group mb-3">
-      <label>Judul Artikel</label>
-      <input type="text" name="title" class="form-control" required>
-    </div>
-    <div class="form-group mb-3">
-      <label>Penulis</label>
-      <input type="text" name="author" class="form-control" required>
-    </div>
-    <div class="form-group mb-3">
-      <label>Isi Artikel</label>
-      <textarea name="content" rows="5" class="form-control" required></textarea>
-    </div>
-    <button type="submit" class="btn btn-primary">Simpan</button>
-    <a href="/tables" class="btn btn-secondary">Batal</a>
-  </form>
+<div class="container mt-5">
+  <div class="form-section mx-auto" style="max-width: 800px;">
+    <h3 class="mb-4 text-primary fw-bold">📝 Tambah Artikel Baru</h3>
+    <form method="POST" action="/tambah-artikel" enctype="multipart/form-data">
+      <div class="mb-4">
+        <label class="form-label fw-semibold">
+          <i class="material-icons">title</i> Judul Artikel
+        </label>
+        <input type="text" name="title" class="form-control form-control-lg" required>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label fw-semibold">
+          <i class="material-icons">person</i> Penulis
+        </label>
+        <input type="text" name="author" class="form-control form-control-lg" required>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label fw-semibold">
+          <i class="material-icons">article</i> Isi Artikel
+        </label>
+        <textarea name="content" class="form-control" required></textarea>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label fw-semibold">
+          <i class="material-icons">image</i> Thumbnail Artikel
+        </label>
+        <input type="file" name="thumbnail" class="form-control" accept="image/*">
+      </div>
+
+      <div class="d-flex justify-content-end">
+        <a href="/tables" class="btn btn-outline-secondary me-2 px-4 py-2 rounded-pill">Batal</a>
+        <button type="submit" class="btn btn-primary px-4 py-2 rounded-pill">💾 Simpan</button>
+      </div>
+    </form>
+  </div>
 </div>
 {% endblock %}

@@ -19,7 +19,7 @@ def is_openid_scope(scope):
 
 
 def validate_request_prompt(grant, redirect_uri, redirect_fragment=False):
-    prompt = grant.request.data.get("prompt")
+    prompt = grant.request.payload.data.get("prompt")
     end_user = grant.request.user
     if not prompt:
         if not end_user:
@@ -50,7 +50,7 @@ def validate_request_prompt(grant, redirect_uri, redirect_fragment=False):
 
 
 def validate_nonce(request, exists_nonce, required=False):
-    nonce = request.data.get("nonce")
+    nonce = request.payload.data.get("nonce")
     if not nonce:
         if required:
             raise InvalidRequestError("Missing 'nonce' in request.")
@@ -70,6 +70,8 @@ def generate_id_token(
     exp=3600,
     nonce=None,
     auth_time=None,
+    acr=None,
+    amr=None,
     code=None,
     kid=None,
 ):
@@ -90,6 +92,12 @@ def generate_id_token(
     }
     if nonce:
         payload["nonce"] = nonce
+
+    if acr:
+        payload["acr"] = acr
+
+    if amr:
+        payload["amr"] = amr
 
     if code:
         payload["c_hash"] = to_native(create_half_hash(code, alg))

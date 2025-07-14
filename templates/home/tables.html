@@ -1,98 +1,132 @@
 {% extends "layouts/base.html" %}
 
-{% block title %} Tables {% endblock %} 
+{% block title %}Tabel Artikel{% endblock %}
 
-<!-- Specific Page CSS goes HERE  -->
-{% block stylesheets %}{% endblock stylesheets %}
+{% block stylesheets %}
+<!-- Material Icons -->
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+  .table-hover tbody tr:hover {
+    background-color: #f6f9fc;
+    transition: 0.3s;
+  }
+
+  .table td, .table th {
+    vertical-align: middle !important;
+  }
+
+  .badge-success {
+    background: linear-gradient(87deg, #2dce89 0, #2dcecc 100%);
+    font-size: 0.75rem;
+    padding: 6px 12px;
+    border-radius: 12px;
+    color: white;
+  }
+
+  .btn-action i {
+    vertical-align: middle;
+    margin-right: 4px;
+  }
+
+  .btn-outline-primary, .btn-outline-danger {
+    border-radius: 50px !important;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  .btn-outline-primary:hover {
+    background-color: #5e72e4;
+    color: white;
+  }
+
+  .btn-outline-danger:hover {
+    background-color: #f5365c;
+    color: white;
+  }
+</style>
+{% endblock stylesheets %}
 
 {% block content %}
-
-  <div class="container-fluid py-4">
-    <div class="me-3 mt-3">
-    <a href="{{ url_for('tambah_artikel') }}" class="btn btn-sm btn-light text-primary font-weight-bold">
+<div class="container-fluid py-4">
+  <div class="mb-3 d-flex justify-content-end">
+    <a href="{{ url_for('tambah_artikel') }}" class="btn btn-primary btn-sm rounded-pill shadow-sm">
       <i class="material-icons text-sm">add</i> Tambah Artikel
     </a>
   </div>
-    <div class="row">
-      <div class="col-12">
-        <div class="card my-4">
-          <div class="card-header p-0 position-relative mt-n4 mx-3 z-index-2">
-            <div class="bg-gradient-primary shadow-primary border-radius-lg pt-4 pb-3">
-              <h6 class="text-white text-capitalize ps-3">Tabel Artikel</h6>
-            </div>
-          </div>
-          <div class="card-body px-0 pb-2">
-            <div class="table-responsive p-0">
-              <table class="table align-items-center mb-0">
-                <thead>
-                  <tr>
-                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Judul</th>
-                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Penulis</th>
-                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Status</th>
-                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Tanggal</th>
-                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for artikel in artikels %}
-                  <tr>
-                    <td>
-                      <div class="px-2 py-1">
-                        <div class="d-flex flex-column justify-content-center">
-                          <h6 class="mb-0 text-sm">{{ artikel.title }}</h6>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <p class="text-xs font-weight-bold mb-0">{{ artikel.author }}</p>
-                    </td>
-                    <td class="align-middle text-center text-sm">
-                      <span class="badge badge-sm bg-gradient-success">Publik</span>
-                    </td>
-                    <td class="align-middle text-center">
-                      <span class="text-secondary text-xs font-weight-bold">{{ artikel.created_at or "-" }}</span>
-                    </td>
-                    <td class="align-middle text-center">
-                      <a href="/edit-artikel/{{ artikel.id }}" class="btn btn-sm btn-outline-primary m-1">Edit</a>
-                      <form action="/delete-artikel/{{ artikel.id }}" method="POST" style="display:inline;">
-                        <button type="submit" class="btn btn-sm btn-outline-danger m-1">Hapus</button>
-                      </form>
-                    </td>
-                  </tr>
-                  {% else %}
-                  <tr>
-                    <td colspan="5" class="text-center text-secondary py-4">
-                      Belum ada artikel yang tersedia.
-                    </td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
+
+  <div class="card shadow-lg border-0">
+    <div class="card-header bg-gradient-primary text-white py-3 px-4">
+      <h5 class="mb-0 fw-bold">📚 Daftar Artikel</h5>
+    </div>
+
+    <div class="card-body px-0 pb-0">
+      <div class="table-responsive p-3">
+        <table class="table table-hover align-items-center mb-0">
+          <thead>
+            <tr>
+              <th>Gambar</th>
+              <th>Judul</th>
+              <th>Penulis</th>
+              <th class="text-center">Status</th>
+              <th class="text-center">Tanggal</th>
+              <th class="text-center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for artikel in artikels %}
+            <tr>
+              <td>
+                {% if artikel.thumbnail_url %}
+                <img src="{{ artikel.thumbnail_url }}" alt="thumbnail" width="80" height="50"
+                     style="object-fit: cover; border-radius: 6px;">
+                {% else %}
+                <span class="text-muted text-xs">Tidak ada gambar</span>
+                {% endif %}
+              </td>
+              <td><strong>{{ artikel.title }}</strong></td>
+              <td>{{ artikel.author }}</td>
+              <td class="text-center">
+                <span class="badge badge-success">Publik</span>
+              </td>
+              <td class="text-center">
+                <span class="text-secondary text-xs">
+                  {{ artikel.created_at.strftime('%d %B %Y') if artikel.created_at else '-' }}
+                </span>
+              </td>
+              <td class="text-center">
+                <a href="/edit-artikel/{{ artikel.id }}" class="btn btn-sm btn-outline-primary btn-action m-1">
+                  <i class="material-icons">edit</i> Edit
+                </a>
+                <form action="/delete-artikel/{{ artikel.id }}" method="POST" style="display:inline;" onsubmit="return confirm('Yakin ingin menghapus artikel ini?');">
+                  <button type="submit" class="btn btn-sm btn-outline-danger btn-action m-1">
+                    <i class="material-icons">delete</i> Hapus
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="6" class="text-center text-muted py-4">Belum ada artikel yang tersedia.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer py-4">
+    <div class="container-fluid">
+      <div class="row justify-content-between">
+        <div class="col-md-6 text-center text-md-start text-sm text-muted">
+          © <script>document.write(new Date().getFullYear())</script> ErgoSit —
+          <a href="https://github.com/FajarrWicaksono" target="_blank" class="fw-bold text-decoration-none text-primary">Tim Developer</a>
         </div>
       </div>
     </div>
-
-    <footer class="footer py-4  ">
-      <div class="container-fluid">
-        <div class="row align-items-center justify-content-lg-between">
-          <div class="col-lg-6 mb-lg-0 mb-4">
-            <div class="copyright text-center text-sm text-muted text-lg-start">
-              © <script>
-                document.write(new Date().getFullYear())
-              </script>,
-              ErgoSit </i>oleh
-              <a href="https://www.creative-tim.com" class="font-weight-bold" target="_blank">Tim Developer</a>
-              untuk web Admin.
-            </div>
-          </div>
-        </div>
-      </div>
-    </footer>
-  </div>
-
+  </footer>
+</div>
 {% endblock content %}
 
-<!-- Specific Page JS goes HERE  -->
 {% block javascripts %}{% endblock javascripts %}
